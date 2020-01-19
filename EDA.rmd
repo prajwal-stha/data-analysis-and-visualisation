@@ -1,0 +1,735 @@
+---
+title: "Exploratory Data Analysis"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Preface
+This markdown will illustrate all the process involved for the Exploratory Data Analysis for the data-set that contains the detailed data on the victims of the most catastrophic civil war that Nepal has ever suffered. The data resource that is being used for the process is collected and quantified from the INSEC (Informal Sector Service Center) documentations on victim. a INCSEC is well-known human rights organization working on human rights issues in Nepal since 1988. Victim specific information are available for non-profit use at http://www.insec.org.np/victim/. 
+  
+
+## Data Understanding
+This segment will load all the required packages that will be used through out the process and will load the dataset from the acquired flat file into the environment. In addition, the preliminary understanding of the data resource will be presented.
+
+
+```{r message=FALSE}
+# Loading required libraries
+if(!require(pacman))install.packages("pacman")
+
+devtools::install_github('bbc/bbplot')
+
+pacman::p_load('tidyverse', 'skimr', 'Hmisc',
+               'DataExplorer',  'ggcorrplot',
+               'funModeling', 'lubridate', 'scales', 
+               'grid', 'RColorBrewer', 'bbplot')
+
+```
+
+
+```{r workDirectory}
+# Setting up the working directory
+setwd('~/Desktop/Sandbox/data-analysis-and-visualisation')
+
+# Removing the variables
+remove(list=ls())
+```
+
+
+```{r message=FALSE}
+victims_df <- read_csv('Nepal_Individual_Level_Replication_Data.csv')
+
+view(victims_df)
+
+```
+
+The data set is loaded in the **victims_df** variable. After the data set is loaded we will check if any problem existed while the data was loaded.
+
+```{r problems}
+problems(victims_df)
+```
+
+It is clear from the above result that there were no any errors while the data set was loaded. Now we will walk into finding out the number of observations and variables and listing out some records.
+
+```{r glimpse}
+
+glimpse(victims_df)
+
+```
+From the metrics above, It is clear that the data set has **15,021 rows** and **32 features**.
+
+
+```{r}
+# Getting the length of the unique entries
+victims_df %>% 
+  map_df(~ n_distinct(.)) %>% 
+  gather(FEATURE, DISTINCT_ROWS) %>% 
+  arrange(desc(DISTINCT_ROWS))
+
+```
+
+The content of individual variables are as follows:  
+1. sno:  
+Numerical district code for IncidentDistrict.  
+The numerical code for the district are represented in the following table:  
+
+| sno | District      | sno | District       | sno | District       |
+|:---:|:-------------:|:---:|:--------------:|:---:|:--------------:|
+|     | MANANG        | 26  | CHITWAN        | 52  | ROLPA          | 
+| 1   | JHAPA         | 27  | MAKAWANPUR     | 53  | SALYAN         |
+| 2   | ILAM          | 28  | LALITPUR       | 54  | RUKUM          |
+| 3   | PANCHATHAR    | 29  | BHAKTAPUR      | 55  | BANKE          |
+| 4   | TAPLEJUNG     | 30  | KATHMANDU      | 56  | BARDIYA        |
+| 5   | MORANG        | 31  | KAVRE          | 57  | SURKHET        |
+| 6   | SUNSARI       | 32  | DHADING        | 58  | JAJARKOT       |
+| 7   | DHANKUTA      | 33  | SINDHUPALCHOWK | 59  | DAILEKH        |
+| 8   | TERATHUM      | 34  | NUWAKOT        | 60  | DOLPA          |
+| 9  | BHOJPUR        | 35  | RASUWA         | 61  | JUMLA          |
+| 10 | SANKHUWASABHA  | 36  | TANAHU         | 62  | KALIKOT        |
+| 11 | SAPTARI        | 37  | GORAKHA        | 63 | MUGU            |
+| 12 | SIRAHA         | 38  | LAMJUNG        | 64 | HUMLA           |
+| 13 | UDAYAPUR       | 39  | SYANGJA        | 65 | KAILALI         | 
+| 14 | KHOTANG        | 40  | KASKI          | 66 | ACHHAM          |
+| 15 | OKHALDHUNGA    | 41  | NAWALPARASI    | 67 | DOTI            |
+| 16 | SOLUKHUMBU     | 42  | RUPANDEHI      | 68 | BAJURA          |
+| 17 | DHANUSHA       | 43  | PALPA          | 69 | BAJHANG         |
+| 18 | MAHOTTARI      | 44  | KAPILVASTU     | 70 | KANCHANPUR      |
+| 19 | SARLAHI        | 45  | ARGHAKHANCHI   | 71 | DADELDHURA      |
+| 20 | SINDHULI       | 46  | GULMI          | 72 | BAITADI         |
+| 21 | RAMECHHAP      | 47  | BAGLUNG        | 73 | DARCHULA        |
+| 22 | DOLAKHA        | 48  | PARVAT         | 74 | MUSTANG         |
+| 23 | RAUTAHAT       | 49  | MYAGDI         |    |                 |
+| 24 | BARA           | 50  | DANG           |    |                 |
+| 25 | PARSA          | 51  | PYUTHAN        |    |                 |  
+2. serial_no  
+A serial no that starts with numerical value 1.    
+
+
+3. Computer_FileNO  
+INSEC's computer record of individual victim.  
+
+
+4. IncidentDistrict  
+The district where the incident happened.  
+
+
+5. Age  
+A continuous variable and code age of the victim at the time of incident (if available).  
+
+
+6. incidentdateinnepali  
+All original dates are in Bikram Sambat (B.S.) or Nepali date. This variable identifies Nepali exact date of incident, when available.  
+
+
+7. dateenglish  
+This variable translates the incident date in Nepali to the English date (A.D.).  
+
+
+8. Year  
+Year (in AD) when the incident took place.  
+
+
+9. PermanentDistrict  
+District code sno, for victim's resident district (permanent district).  
+
+
+10. Region1  
+Geographical Region of Nepal. Nepal has three geographical region.  
+Code 1: if the district comes from Terai (plain) region;    
+Coded 2: if the district comes from hill region;    
+And coded 3: if the district comes from mountainous region.    
+
+
+11. Region2  
+Political region of Nepal. Nepal has five development/political regions.    
+Code 1: if a district is from Eastern Development Region;  
+Coded 2: if a district is from Central Development Region;  
+Coded 3: if a district is from Western Development Region;  
+Coded 4: if the district is from Mid-Western Development Region; and  
+Coded 5: if the district is from Far Western Region.   
+
+
+12. Contiguity  
+If Victim’s permanent district is a neighbor to the district where the event took place, code "1", otherwise code "0" (Refer Contiguity district list)    
+
+
+13. Contiguity_sno  
+If contiguity is coded "1", provide contiguous district’'s sno (Refer to district list)  
+
+
+14. Mobility  
+Mobility of a victim depending on permanent district and incident district.  
+Code "0" if the incident took place neither in the permanent district nor in the contiguous district.   Code "1" if the incident took place in the contiguous district.    
+Code "2" if the incident took place in the permanent district.    
+
+
+15. IncidentOutcome  
+Incident outcome: either a form of killing, disappearance, or sustained injury  
+Code 1: if the victim is identified as killed  
+Code 2: if the victim is identified as disappeared  
+Code 3: if the victim sustained injury during incident   
+
+
+16. Killed_Type  
+Among those who were identified as killed in above variable, this variable identifies killing types.  
+Code 1: if the Killed incident is classified as "Combat Fighting"  
+Code 2: if the Killed incident is classified as "Extra Judicial Killing"  
+Code 3: if the Killed incident is classified as "Serious Nature"  
+Code 4: if the Killed incident is classified as "Electrocution"  
+Code 5: if the Killed incident is classified as "self-bomb explosion"  
+Code 6: if the killed incident is classified as "bomb explosion"  
+Code 0: if the killed incident is coded as "other"  
+Code 9 : if the incident outcome is not killed.  
+
+
+17. By_State  
+This variable identified whether the state is the perpetrator or not. Code "1" if the state is the perpetrator, otherwise "0".  
+
+
+18. By_Maoist  
+This variable identified whether the Maoist is the perpetrator or not. Code "1" if the Maoist party is the perpetrator, otherwise "0". 
+
+
+19. Other_Perpetrators  
+This variable identified other perpetrator when the violence was not targeted either by the State or the Maoist party.  
+Code "1" when other perpetrators are identified, otherwise "0". 
+
+
+20. Gender  
+Identifies gender of the victim.
+Code 1: if the victim is identified as female;   
+Code 0 if the victim is identified as male.  
+
+
+21. MaritalStatus  
+Code 1: **Married**  
+Code 2: **Unmarried**  
+Code 3: **Divorced**  
+Code 4: **Widow**  
+Code 5: **Widower**  
+Code 6: **Not clear** 
+
+
+22. LanguageGroup  
+Code 1: **Nepali**   
+Code 2: **Newari**  
+Code 3: **Tamang**   
+Code 4: **Gurung**    
+Code 5: **Tharu**     
+Code 6: **Maithili**    
+Code 7: **Hindi**    
+Code 8: **Awadhi**    
+Code 9: **Bhojpuri**    
+Code 10: **Magar**    
+Code 11: **Chepang**    
+Code 12: **Rai**    
+Code 13: **Thakali**    
+Code 14: **Dhimal**    
+Code 15: **Dotali**    
+Code 16: **Muslim**    
+Code 17: **Thami**    
+Code 18: **Jirel**    
+Code 19: **Other**    
+Code 20: **Not clear**  
+
+
+23. CasteGroup  
+Code 1: **Bramin/Chettri**  
+Code 2: **Janajati**  
+Code 3: **Aadibashi**  
+Code 4: **Madeshi**  
+Code 5: **Dalit**  
+Code 6: **Muslim**  
+Code 7: **"clear" or "mentioned"**  
+Code 9: **"Other"**  
+
+
+24. Partyaffiliation  
+Code 1: Nepali Congress (Democratic)  
+Code 2: Nepali Congress (including its sister organizations and student wing)  
+Code 3: Communist Party Nepal- United Marxist Leninists (CPN-UML) including its sister organization and student wing (i.e. Akhil Nepal Shikshak Sang)  
+Code 4: Communist Party Nepal-Marxist Leninist (CPN-ML)  
+Code 5: United Maoist (REBEL PARTY including its student wing, sister organizations and fronts i.e. Akhil Krantikari)  
+Code 6: People's Front- Nepal  
+Code 7: Rastriya Prajatantrik Party (RPP)  
+Code 8: Nepal Sadbhawana Party  
+Code 9: United People’s Front  
+Code 10: Nepal Workers and Peasants Party  
+Code 11: Nepal Communist Party-United  
+Code 12: National People's Liberation Party  
+Code 13: Limbuwan National Liberation Front  
+Code 99: Party Affiliation not identified or not affiliated.  
+
+
+25. EconomicStatus  
+Code 1: **Higher** economic background  
+Code 2: **Middle** economic background  
+Code 3: **Lower-Middle** economic background   
+Code 4: **Lower** economic background   
+Code 5: **Not clear**  
+
+
+26. Education    
+Code 1: **Master’s Degree**    
+Code 2: **Bachelor’s Degree**    
+Code 3: **Intermediate**   
+Code 4: **High School**    
+Code 5: **Lower High School**    
+Code 6: **Primary School**    
+Code 7: **Literate**    
+Code 8: **Illiterate**    
+Code 9: **Not clear**   
+
+
+27. OccupationCategory  
+Code 1: **Agriculture**    
+Code 2: **Wage Laborer**    
+Code 3: **Employed**    
+Code 4: **Teacher**    
+Code 5: **Police**   
+Code 6: **Army**    
+Code 7: **Lawyer**    
+Code 8: **Doctor**    
+Code 9: **Politician**    
+Code 10: **Social worker**    
+Code 11: **Rights activists**    
+Code 12: **Musician**    
+Code 13: **Player**    
+Code 14: **Driver**    
+Code 15: **Student**    
+Code 16: **Journalist**    
+Code 17: **Businessman**    
+Code 18: **Ex-security personnel**    
+Code 19: **other or not clear**      
+
+
+28. Informer  
+Code 1: if the victim was identified or alleged to be an informer mobilized by the state or the Maoist rebel group.  
+Code 0: everything else.    
+
+
+29. LivelihoodDependence  
+Livelihood bases of victim’s dependent  
+Code 1: if dependent’s livelihood support base if agriculture  
+Code 2: if dependent’s livelihood support base is identified other than agriculture  
+Code 3: if dependent’s livelihood support base is identified as "unknown"  
+
+
+30. Compensation  
+Government gave certain amount of money to certain victims as compensation. This process continued well until 2010. Therefore, this particular data should be regarded incomplete.  
+Code 1: if conflict victims received compensation  
+Code 0: if conflict victims did not receive compensation  
+
+
+31. Displacement  
+If this incident had a displacement impact on victim  
+Code 1: if displacement was recorded  
+Code 0: if the displacement was not recorded  
+
+
+32. DisplacementResettlement  
+If displacement was recorded  
+Code 1: if victim was resettled  
+Code 0: if victim was not resettled  
+
+
+33. IncidentVictim  
+If more than one victim was identified as killed in the incident, how many were involved in the incident?
+This is a continuous measure. If exact number not available, code -99. If the incident had only one victim killed, code -88.  
+
+
+```{r df_status}
+df_status(victims_df)
+```
+
+The metrics from above table is presented down below:  
+1. **q_zeros** represents the quantities of the zero values present in the variable.  
+2. **p_zeros** represents the presence of zero values in percentage.  
+3. **q_na** represents the quantity of NA values.  
+4. **p_na** represents the presence of NA values in percentage.  
+5. **type** represents the data type of the feature: **factor** or **numeric**.  
+6. **unique** represents the cardinality of the variable.  
+
+From the above metrics table, It is known that features : **age_2**, **Informer** contains maximum number of _NA_ values. Hence we will remove these variables for further analysis purpose.
+
+```{r drop}
+# Removing age_2 and Informer feature from the dataset
+victims_df = subset(victims_df, select = -c(age_2, Informer))
+```
+
+
+## Data Validation, Data Quality and Imputation
+This segment will deal with lion’s share of the work for any data analysis task of diagnosing the acquired data and deal with any of the problem with the data resource. 
+
+```{r}
+# Checking the number of NA record
+victims_df %>% 
+  map_df(~ sum(is.na(.)))
+```
+
+```{r}
+# Changing empty string to NA
+victims_df <- victims_df %>% 
+  na_if("")
+
+# Changing the data types of Event_Date feature to date type
+victims_df$Event_Date <- dmy(victims_df$Event_Date)
+```
+
+Since the **Year** variable has more significance for further analysis and the the presence of NA value is **0.26% (minimum)**, we will try to capture the value for the **Year** variable from the **Event_Date** variable if the value is present in the **Event_Date** variable and if the data is NA for **Event_Date** we will assign the most frequent value among the **Year** value to the missing **Year** variable data.
+
+```{r message=FALSE}
+
+# Counting the number of observation with NA value in Year Variable
+count(filter(victims_df, is.na(Year)))
+
+# Getting the values from Event_Date where Year variable is NA
+victims_df$Year <- ifelse(is.na(victims_df$Year) & !is.na(victims_df$Event_Date), year(victims_df$Event_Date), victims_df$Year)
+
+count(filter(victims_df, is.na(Year)))
+```
+ 
+From the code execution above, we were successful to fill the 7 observation of **Year** variable with the year value from **Event_Date**. Since the number of **NA** values present in the **Year** variable is **32 (very minimum)** and we don't want to loose the information of those 32 observation we have opted for **Mode Imputation**. 
+
+
+```{r mode}
+
+# Changing NA values to mode values in Year variable
+year_unique_value <- unique(victims_df$Year[!is.na(victims_df$Year)])
+
+# Calculating most frequent value of Year variable
+year_mode_value <- year_unique_value[which.max(tabulate(match(victims_df$Year, year_unique_value)))]
+
+victims_df$Year[is.na(victims_df$Year)] <- year_mode_value
+
+```
+
+```{r }
+# Counting the number of NA values in Age variable
+count(filter(victims_df, is.na(Age)))
+```
+From the code execution above, It is clear that we have **310 observations** where the value for **Age** variable is missing. Since every observation in our case is very significant, we don't want to loose any observation. Hence we will use the **Mean Imputation** for the **Age** variable.
+
+```{r mean-imputation}
+# Changing the NA values in Age variable with Mean of the Age
+victims_df <- victims_df %>%
+  mutate(Age = as.numeric(Age)) %>% 
+  transform(victims_df, Age = ifelse(is.na(Age), round(mean(victims_df$Age, na.rm = TRUE)), Age))
+```
+
+
+```{r withAge}
+# Checking the distribution of Age variable
+with(victims_df, table(Age))
+```
+
+Lastly, we will use mode imputation for all the label encoded variables with the mode values as there are very less number of NA values in the label encoded categorical variables.
+
+```{r}
+
+# Changing NA values to mode values in IncidentOutcome variable
+IncidentOutcome_unique_value <- unique(victims_df$IncidentOutcome[!is.na(victims_df$IncidentOutcome)])
+
+# Calculating most frequent value of IncidentOutcome variable
+IncidentOutcome_mode_value <- IncidentOutcome_unique_value[which.max(tabulate(match(victims_df$IncidentOutcome, IncidentOutcome_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$IncidentOutcome[is.na(victims_df$IncidentOutcome)] <- IncidentOutcome_mode_value
+
+# Changing NA values to mode values in Killed_Type variable
+Killed_Type_unique_value <- unique(victims_df$Killed_Type[!is.na(victims_df$Killed_Type)])
+
+# Calculating most frequent value of Killed_Type variable
+Killed_Type_mode_value <- Killed_Type_unique_value[which.max(tabulate(match(victims_df$Killed_Type, Killed_Type_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$Killed_Type[is.na(victims_df$Killed_Type)] <- Killed_Type_mode_value
+
+
+# Changing NA values to mode values in MaritalStatus variable
+MaritalStatus_unique_value <- unique(victims_df$MaritalStatus[!is.na(victims_df$MaritalStatus)])
+
+# Calculating most frequent value of MaritalStatus variable
+MaritalStatus_mode_value <- MaritalStatus_unique_value[which.max(tabulate(match(victims_df$MaritalStatus, MaritalStatus_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$MaritalStatus[is.na(victims_df$MaritalStatus)] <- MaritalStatus_mode_value
+
+# Changing NA values to mode values in LanguageGroup variable
+LanguageGroup_unique_value <- unique(victims_df$LanguageGroup[!is.na(victims_df$LanguageGroup)])
+
+# Calculating most frequent value of LanguageGroup variable
+LanguageGroup_mode_value <- LanguageGroup_unique_value[which.max(tabulate(match(victims_df$LanguageGroup, LanguageGroup_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$LanguageGroup[is.na(victims_df$LanguageGroup)] <- LanguageGroup_mode_value
+
+# Changing NA values to mode values in CasteGroup variable
+CasteGroup_unique_value <- unique(victims_df$CasteGroup[!is.na(victims_df$CasteGroup)])
+
+# Calculating most frequent value of CasteGroup variable
+CasteGroup_mode_value <- CasteGroup_unique_value[which.max(tabulate(match(victims_df$CasteGroup, CasteGroup_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$CasteGroup[is.na(victims_df$CasteGroup)] <- CasteGroup_mode_value
+
+# Replacing the NA value with the mode value
+victims_df$LanguageGroup[is.na(victims_df$LanguageGroup)] <- LanguageGroup_mode_value
+
+# Changing NA values to mode values in Partyaffiliation variable
+Partyaffiliation_unique_value <- unique(victims_df$Partyaffiliation[!is.na(victims_df$Partyaffiliation)])
+
+# Calculating most frequent value of Partyaffiliation variable
+Partyaffiliation_mode_value <- Partyaffiliation_unique_value[which.max(tabulate(match(victims_df$Partyaffiliation, Partyaffiliation_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$Partyaffiliation[is.na(victims_df$Partyaffiliation)] <- Partyaffiliation_mode_value
+
+
+# Changing NA values to mode values in EconomicStatus variable
+EconomicStatus_unique_value <- unique(victims_df$EconomicStatus[!is.na(victims_df$EconomicStatus)])
+
+# Calculating most frequent value of EconomicStatus variable
+EconomicStatus_mode_value <- EconomicStatus_unique_value[which.max(tabulate(match(victims_df$EconomicStatus, EconomicStatus_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$EconomicStatus[is.na(victims_df$EconomicStatus)] <- EconomicStatus_mode_value
+
+
+# Changing NA values to mode values in Education variable
+Education_unique_value <- unique(victims_df$Education[!is.na(victims_df$Education)])
+
+# Calculating most frequent value of Education variable
+Education_mode_value <- Education_unique_value[which.max(tabulate(match(victims_df$Education, Education_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$Education[is.na(victims_df$Education)] <- Education_mode_value
+
+# Changing NA values to mode values in OccupationCategory variable
+OccupationCategory_unique_value <- unique(victims_df$OccupationCategory[!is.na(victims_df$OccupationCategory)])
+
+# Calculating most frequent value of OccupationCategory variable
+OccupationCategory_mode_value <- OccupationCategory_unique_value[which.max(tabulate(match(victims_df$OccupationCategory, OccupationCategory_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$OccupationCategory[is.na(victims_df$OccupationCategory)] <- OccupationCategory_mode_value
+
+# Changing NA values to mode values in LivelihoodDependence variable
+LivelihoodDependence_unique_value <- unique(victims_df$LivelihoodDependence[!is.na(victims_df$LivelihoodDependence)])
+
+# Calculating most frequent value of LivelihoodDependence variable
+LivelihoodDependence_mode_value <- LivelihoodDependence_unique_value[which.max(tabulate(match(victims_df$LivelihoodDependence, LivelihoodDependence_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$LivelihoodDependence[is.na(victims_df$LivelihoodDependence)] <- LivelihoodDependence_mode_value
+
+
+# Changing NA values to mode values in Displacement variable
+Displacement_unique_value <- unique(victims_df$Displacement[!is.na(victims_df$Displacement)])
+
+# Calculating most frequent value of Displacement variable
+Displacement_mode_value <- Displacement_unique_value[which.max(tabulate(match(victims_df$Displacement, Displacement_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$Displacement[is.na(victims_df$Displacement)] <- Displacement_mode_value
+
+# Changing NA values to mode values in DisplacementResettlement variable
+DisplacementResettlement_unique_value <- unique(victims_df$DisplacementResettlement[!is.na(victims_df$DisplacementResettlement)])
+
+# Calculating most frequent value of DisplacementResettlement variable
+DisplacementResettlement_mode_value <- DisplacementResettlement_unique_value[which.max(tabulate(match(victims_df$DisplacementResettlement, DisplacementResettlement_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$DisplacementResettlement[is.na(victims_df$DisplacementResettlement)] <- DisplacementResettlement_mode_value
+
+# Changing NA values to mode values in Gender variable
+Gender_unique_value <- unique(victims_df$Gender[!is.na(victims_df$Gender)])
+
+# Calculating most frequent value of Gender variable
+Gender_mode_value <- Gender_unique_value[which.max(tabulate(match(victims_df$Gender, Gender_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$Gender[is.na(victims_df$Gender)] <- Gender_mode_value
+
+# Changing NA values to mode values in Compensation variable
+Compensation_unique_value <- unique(victims_df$Compensation[!is.na(victims_df$Compensation)])
+
+# Calculating most frequent value of Gender variable
+Compensation_mode_value <- Compensation_unique_value[which.max(tabulate(match(victims_df$Compensation, Compensation_unique_value)))]
+
+# Replacing the NA value with the mode value
+victims_df$Compensation[is.na(victims_df$Compensation)] <- Compensation_mode_value
+```
+
+```{r}
+# Checking the number of NA record
+victims_df %>% 
+  map_df(~ sum(is.na(.)))
+```
+
+## Data Profiling
+In this section, we will walk through various ways to better understand the data resource by calculating the measures of central tendencies, performing statistical analysis to characterize the symmetric distribution of the data, calculating and visualising correlation between the variables.
+
+We have many numerical features in the data-set. But in-fact, all the numerical features except the **Age** variable contains label-encoded values. Hence we will only deal with **Age** variable for 
+
+```{r}
+# Summary matrix for numerical features
+victims_df %>% 
+  select(Age) %>% 
+  skim()
+```
+
+From the metrics above, It is clear that the age of the victims range from **1 - 94** and mean age of the victims is **28.3**.
+
+
+## Data Visualisation
+One of the best but yet more challenging way to gain insights on the data is to visualise them: that way we can all the more effectively identify patterns, grasp difficult concepts and draw the attention to the key elements. This segment will try to gain the qualitative understanding of the data by placing it in a visual context so that the systematic patterns, trends, correlations, corrupt data, and outliers that might not otherwise be detected can be unlocked properly.  
+
+```{r}
+# Histogram Plot for Age Variable
+ggplot(victims_df)  + 
+  geom_histogram(mapping = aes(x=Age), fill="#1380A1", color="#e9ecef", alpha=0.9, bins=10) +     labs(title = "Age") + bbc_style() +
+  theme(plot.title = element_text(color = "#063376"))
+```
+
+
+
+```{r}
+# Histogram Plot for Number of victims per year
+ggplot(victims_df)  + 
+  geom_histogram(mapping = aes(x=Year), fill="#c0392b", color="#e9ecef", alpha=0.9, bins=10) +     labs(title = "Victims Per Year") + bbc_style() +
+  theme(plot.title = element_text(color = "#063376"))
+```
+
+
+```{r}
+ ggplot(victims_df, aes(x = Year, fill = as.factor(IncidentOutcome))) +
+  geom_bar(stat="count", position="dodge") +
+  geom_hline(yintercept = 0, size = 1, colour="#333333") +
+  scale_fill_manual(values = c("#1380A1", "#FAAB18", "#990000"),
+                    name="Incident Outcome",
+                    breaks=c(1, 2, 3),
+                    labels=c("Killed", "Disappeared", "Injury")) +
+  labs(title="Pattern of Incident Outcome", subtitle = "1996-2006") +
+  scale_x_continuous(breaks = seq(from = 1996, to = 2006, by = 1)) +
+  ylab('Number of Victims')
+```
+  
+From the grouped bar chart above, It is much clear that the there were maximum number of **Killed** outcomes than **Disappeared** and **Injury**. Also, It can be depicted that the maximum number of casualties were in **2002**. 
+
+```{r}
+EconomicStatusLabels <- c("Higher", "Middle", "Lower-Middle", "Lower", "Not clear")
+# Bar Chart for plotting the number of victims as of Economic Status
+ ggplot(victims_df, aes(x = factor(EconomicStatus), fill = factor(EconomicStatus))) +
+  geom_bar(stat="count", position="dodge") +
+  geom_hline(yintercept = 0, size = 1, colour="#333333") +
+  bbc_style() +
+  scale_fill_manual(values = c("#1380A1", "#FAAB18", "#990000", "#cbcbcb","#333333"),
+                    name="Economic Status",
+                    breaks=c(1, 2, 3, 4, 5),
+                    labels=EconomicStatusLabels) +
+  labs(subtitle="Victims by Economic status") +
+  scale_x_discrete(labels = EconomicStatusLabels)
+```
+  
+From the bar chart above, It is clear that the maximum number of the victims had lower economic status. 
+
+```{r}
+OccupationCategoryLabels <- c("Agriculture", "Wage Laborer", "Employed", "Teacher", "Police", "Army", "Lawyer", "Doctor", "Politician", "Social worker", "Rights activists", "Musician", "Player", "Driver", "Student", "Journalist", "Businessman", "Ex-security personnel", "other")
+# Bar Chart for plotting the number of victims as of Occupation category
+ ggplot(victims_df, aes(x = factor(OccupationCategory), fill = factor(OccupationCategory))) +
+    geom_bar(stat="count", position="dodge") +
+    geom_hline(yintercept = 0, size = 1, colour="#333333") +
+    scale_fill_manual(values = c("#1380A1", "#FAAB18", "#990000", "#cbcbcb","#333333", "#DC143C", "#FF1493", "#FF6347", "#FFA500", "#FFD700", "#FFDAB9", "#BDB76B", "#DDA0DD", "#FF00FF", "#663399", "#8B008B", "#483D8B", "#32CD32", "#2E8B57"),
+                    name="Occupation Category",
+                    breaks=c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19),
+                    labels=OccupationCategoryLabels) +
+  labs(subtitle="Victims by Occupation category") +
+  scale_x_discrete(labels = OccupationCategoryLabels) +
+  ylab('Number of Victims') +
+  xlab('Occupation Categories') +
+  theme(axis.text.x = element_text(angle = 90)
+)
+```
+  
+From the bar chart above, It is clear that the maximum number of the victims belonged to politician occupation category.
+
+```{r}
+LanguageGroupLabels <- c("Nepali", "Newari", "Tamang", "Gurung", "Tharu", "Maithili", "Hindi", "Awadhi", "Bhojpuri", "Magar", "Chepang", "Rai", "Thakali", "Dhimal", "Dotali", "Muslim", "Thami", "Jirel", "Other", "Not clear")
+# Bar Chart for plotting the number of victims as of Language Group
+ ggplot(victims_df, aes(x = factor(LanguageGroup), fill = factor(LanguageGroup))) +
+  geom_bar(stat="count", position="dodge") +
+  geom_hline(yintercept = 0, size = 1, colour="#333333") +
+  scale_fill_manual(values = c("#1380A1", "#FAAB18", "#990000", "#cbcbcb","#333333", "#DC143C", "#FF1493", "#FF6347", "#FFA500", "#FFD700", "#FFDAB9", "#BDB76B", "#DDA0DD", "#FF00FF", "#663399", "#8B008B", "#483D8B", "#32CD32", "#2E8B57", "#556B2F"),
+                    name="Language Group",
+                    breaks=c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20),
+                    labels=LanguageGroupLabels) +
+  labs(subtitle="Victims by language group") +
+  scale_x_discrete(labels = LanguageGroupLabels) +
+  ylab('Number of Victims') +
+  xlab('Language Group') +
+  theme(axis.text.x = element_text(angle = 90)
+)
+```
+  
+From the bar chart above, It is clear that the maximum number of the victims belonged to Nepali language speaking group.
+
+```{r}
+CasteGroupLabels <- c("Bramin/Chettri", "Janajati", "Aadibashi", "Madeshi", "Dalit", "Muslim", "Not clear", "Other")
+# Bar Chart for plotting the number of victims as of caste Group
+ ggplot(victims_df, aes(x = factor(CasteGroup), fill = factor(CasteGroup))) +
+  geom_bar(stat="count", position="dodge") +
+  geom_hline(yintercept = 0, size = 1, colour="#333333") +
+  scale_fill_manual(values = c("#1380A1", "#FAAB18", "#990000", "#cbcbcb","#333333", "#DC143C", "#FF1493", "#FF6347"),
+                    name="Caste Group",
+                    breaks=c(1, 2, 3, 4, 5, 6, 7, 8),
+                    labels=CasteGroupLabels) +
+  labs(subtitle="Victims by Caste group") +
+  scale_x_discrete(labels = CasteGroupLabels) +
+  ylab('Number of Victims') +
+  xlab('Caste Group') +
+  theme(axis.text.x = element_text(angle = 90) 
+)
+```
+   
+From the bar chart above, It is clear that the maximum number of the victims belonged to Brahmin/Chettry caste group.
+
+```{r}
+PartyAffiliationLabels <- c("Nepali Congress (Democratic)", "Nepali Congress", "CPN-UML", "CPN-ML", "United Maoist", "People’s Front- Nepal", "RPP", "Nepal Sadbhawana Party", "United People’s Front", "Nepal Workers and Peasants Party", "Nepal Communist Party-United", "National People’s Liberation Party", "Limbuwan National Liberation Front", "Not identified")
+# Bar Chart for plotting the number of victims as of party affiliation
+ ggplot(victims_df, aes(x = as.factor(Partyaffiliation), fill = as.factor(Partyaffiliation))) +
+  geom_bar(stat="count", position="dodge", width = 0.3) +
+  scale_fill_manual(values = c("#1380A1", "#FAAB18", "#990000", "#cbcbcb","#333333", "#DC143C", "#FF1493", "#FF6347", "#FFE4E1", "#FFD700", "#FFDAB9", "#BDB76B", "#DDA0DD", "#DAA520"),
+                    name="Party Affiliation",
+                    breaks=c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 99),
+                    labels=PartyAffiliationLabels) +
+  labs(subtitle="Victims by Political Party Affiliation") +
+  scale_x_discrete(labels = PartyAffiliationLabels) +
+  ylab('Number of Victims') +
+  xlab('Party Affiliation') +
+  theme(axis.text.x = element_text(angle = 90), legend.position="bottom")
+```
+
+  
+From the bar chart above, It is clear that the maximum number of the victims belonged to Brahmin/Chettry caste group.
+
+```{r}
+EducationLabels <- c("Master", "Bachelor", "Intermediate", "High School", "Lower High School", "Primary School", "Literate", "Illiterate", "Not clear")
+# Bar Chart for plotting the number of victims as of party affiliation
+ ggplot(victims_df, aes(x = factor(Education), fill = factor(Education))) +
+  geom_bar(stat="count", position="dodge") +
+  scale_fill_manual(values = c("#1380A1", "#FAAB18", "#990000", "#cbcbcb","#333333", "#DC143C", "#FF1493", "#FF6347", "#FFA500"),
+                    name="Education",
+                    breaks=c(1, 2, 3, 4, 5, 6, 7, 8, 9),
+                    labels=EducationLabels) +
+  labs(subtitle="Victims by Education") +
+  scale_x_discrete(labels = EducationLabels) +
+  ylab('Number of Victims') +
+  xlab('Education') +
+  theme(axis.text.x = element_text(angle = 90), legend.position="bottom")
+```
