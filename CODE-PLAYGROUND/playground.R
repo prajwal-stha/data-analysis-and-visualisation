@@ -14,7 +14,6 @@ if(!require(pacman))install.packages("pacman")
 devtools::install_github('bbc/bbplot')
 
 
-
 pacman::p_load('tidyverse', 
                'skimr', 
                'Hmisc', 
@@ -55,6 +54,17 @@ glimpse(victimData_df)
 
 summary(victimData_df)
 
+# Checking the number of empty values data
+md.pattern(victimData_df)
+
+# Histogram of Missing data
+aggr_plot <- aggr(victimData_df, col=c('navyblue', 'red'), 
+                  numbers=TRUE, sortVars=TRUE, 
+                  labels=names(victimData_df), 
+                  cex.axis=.7, 
+                  gap=3, 
+                  ylab=c("Graph for missing data", "Pattern"))
+
 
 # Getting the length of the unique entries
 victimData_df_unique_entries <- victimData_df %>% 
@@ -66,50 +76,62 @@ view(victimData_df_unique_entries)
 
 df_status(victimData_df)
 
+
+
 # Removing age_2 and Informer feature from the dataset
 victimData_df = subset(victimData_df, select = -c(age_2, Informer))
 
-view(victimData_df)
+
+
+
+df_status(victimData_df)
 
 
 # Checking the number of NA record
 victimData_df %>% 
   map_df(~ sum(is.na(.)))
 
+
+
 # Changing empty string to NA
 victimData_df %>% 
   na_if("")
-
-df_status(victimData_df)
-
-# Checking the number of empty values data
-md.pattern(victimData_df)
-
-# Histogram of Missing data
-aggr_plot <- aggr(victimData_df, col=c('navyblue', 'red'), numbers=TRUE, sortVars=TRUE, labels=names(victimData_df), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
-
-
-event_date_unique_value <- unique(victimData_df$Event_Date[!is.na(victimData_df$Event_Date)])
-
-event_date_mode_value <- event_date_unique_value[which.max(tabulate(match(victimData_df$Event_Date, event_date_unique_value)))]
-
-victimData_df$Event_Date[victimData_df$Event_Date == ''] <- event_date_mode_value
-
-
-# Changing NA values to mode values in Year variable
-year_unique_value <- unique(victimData_df$Year[!is.na(victimData_df$Year)])
-
-# Calculating most frequent value of Year variable
-year_mode_value <- year_unique_value[which.max(tabulate(match(victimData_df$Year, year_unique_value)))]
-
-
-# Counting the number of NA values in Age variable
-count(filter(victimData_df, is.na(Age)))
 
 # Summary matrix for numerical features
 victimData_df %>% 
   select(Age) %>% 
   skim()
+
+
+df_status(victimData_df)
+
+# Data Imputation
+
+
+# Counting the number of empty records in the Event_Date variable
+count(filter(victimData_df, Event_Date == '' | is.na(Event_Date)))
+
+# Getting unique entries for the Event Date variable
+event_date_unique_value <- unique(victimData_df$Event_Date[!is.na(victimData_df$Event_Date) & victimData_df$Event_Date != ''])
+
+# Calculating most frequent value of Event Date variable
+event_date_mode_value <- event_date_unique_value[which.max(tabulate(match(victimData_df$Event_Date, event_date_unique_value)))]
+
+# Imputing the empty data with the mode value from the Event Date
+victimData_df$Event_Date[victimData_df$Event_Date == '' | is.na(victimData_df$Event_Date)] <- event_date_mode_value
+
+
+# Counting the number of empty records after imputation
+count(filter(victimData_df, Event_Date == '' | is.na(Event_Date)))
+
+# Transforming the type of variable
+victimData_df$Event_Date <- dmy(victimData_df$Event_Date)
+
+
+# Counting the number of NA values in Age variable
+count(filter(victimData_df, is.na(Age)))
+
+
 
 # Changing the NA values in Age variable with Mean of the Age
 victimData_df <- victimData_df %>%
@@ -117,9 +139,16 @@ victimData_df <- victimData_df %>%
   transform(victimData_df, Age = ifelse(is.na(Age), round(mean(victimData_df$Age, na.rm = TRUE)), Age))
 
 
+# Counting the number of NA values after imputation
+count(filter(victimData_df, is.na(Age)))
+
+
 # Checking the distribution of Age variable
 with(victimData_df, table(Age))
 
+
+# Counting the number of NA values in IncidentOutcome variable
+count(filter(victimData_df, is.na(IncidentOutcome)))
 
 # Changing NA values to mode values in IncidentOutcome variable
 IncidentOutcome_unique_value <- unique(victimData_df$IncidentOutcome[!is.na(victimData_df$IncidentOutcome)])
@@ -129,6 +158,16 @@ IncidentOutcome_mode_value <- IncidentOutcome_unique_value[which.max(tabulate(ma
 
 # Replacing the NA value with the mode value
 victimData_df$IncidentOutcome[is.na(victimData_df$IncidentOutcome)] <- IncidentOutcome_mode_value
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(IncidentOutcome)))
+
+
+
+
+# Counting the number of NA values in Killed_Type variable
+count(filter(victimData_df, is.na(Killed_Type)))
+
 
 # Changing NA values to mode values in Killed_Type variable
 Killed_Type_unique_value <- unique(victimData_df$Killed_Type[!is.na(victimData_df$Killed_Type)])
@@ -140,6 +179,35 @@ Killed_Type_mode_value <- Killed_Type_unique_value[which.max(tabulate(match(vict
 
 # Replacing the NA value with the mode value
 victimData_df$Killed_Type[is.na(victimData_df$Killed_Type)] <- Killed_Type_mode_value
+
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(Killed_Type)))
+
+
+
+# Counting the number of NA values in Gender variable
+count(filter(victimData_df, is.na(Gender)))
+
+
+# Changing NA values to mode values in Gender variable
+Gender_unique_value <- unique(victimData_df$Gender[!is.na(victimData_df$Gender)])
+
+# Calculating most frequent value of Gender variable
+Gender_mode_value <- Gender_unique_value[which.max(tabulate(match(victimData_df$Gender, Gender_unique_value)))]
+
+# Replacing the NA value with the mode value
+victimData_df$Gender[is.na(victimData_df$Gender)] <- Gender_mode_value
+
+
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(Gender)))
+
+
+
+# Counting the number of NA values in MaritalStatus variable
+count(filter(victimData_df, is.na(MaritalStatus)))
 
 
 # Changing NA values to mode values in MaritalStatus variable
@@ -154,14 +222,33 @@ victimData_df$MaritalStatus[is.na(victimData_df$MaritalStatus)] <- MaritalStatus
 # Replacing the 0 value that denotes nothing
 victimData_df$MaritalStatus[victimData_df$MaritalStatus == 0] <- MaritalStatus_mode_value
 
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(MaritalStatus) | MaritalStatus == 0))
+
+
+
+# Counting the number of NA values in LanguageGroup variable
+count(filter(victimData_df, is.na(LanguageGroup)))
+
+
 # Changing NA values to mode values in LanguageGroup variable
 LanguageGroup_unique_value <- unique(victimData_df$LanguageGroup[!is.na(victimData_df$LanguageGroup)])
 
 # Calculating most frequent value of LanguageGroup variable
 LanguageGroup_mode_value <- LanguageGroup_unique_value[which.max(tabulate(match(victimData_df$LanguageGroup, LanguageGroup_unique_value)))]
 
+
 # Replacing the NA value with the mode value
 victimData_df$LanguageGroup[is.na(victimData_df$LanguageGroup)] <- LanguageGroup_mode_value
+
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(LanguageGroup)))
+
+
+# Counting the number of NA values in CasteGroup variable
+count(filter(victimData_df, is.na(CasteGroup)))
 
 
 # Changing NA values to mode values in CasteGroup variable
@@ -173,8 +260,15 @@ CasteGroup_mode_value <- CasteGroup_unique_value[which.max(tabulate(match(victim
 # Replacing the NA value with the mode value
 victimData_df$CasteGroup[is.na(victimData_df$CasteGroup)] <- CasteGroup_mode_value
 
-# Replacing the NA value with the mode value
-victimData_df$LanguageGroup[is.na(victimData_df$LanguageGroup)] <- LanguageGroup_mode_value
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(CasteGroup)))
+
+
+
+# Counting the number of NA values in Partyaffiliation variable
+count(filter(victimData_df, is.na(Partyaffiliation)))
+
 
 # Changing NA values to mode values in Partyaffiliation variable
 Partyaffiliation_unique_value <- unique(victimData_df$Partyaffiliation[!is.na(victimData_df$Partyaffiliation)])
@@ -184,6 +278,16 @@ Partyaffiliation_mode_value <- Partyaffiliation_unique_value[which.max(tabulate(
 
 # Replacing the NA value with the mode value
 victimData_df$Partyaffiliation[is.na(victimData_df$Partyaffiliation)] <- Partyaffiliation_mode_value
+
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(Partyaffiliation)))
+
+
+
+# Counting the number of NA values in EconomicStatus variable
+count(filter(victimData_df, is.na(EconomicStatus)))
+
 
 # Changing NA values to mode values in EconomicStatus variable
 EconomicStatus_unique_value <- unique(victimData_df$EconomicStatus[!is.na(victimData_df$EconomicStatus)])
@@ -196,6 +300,16 @@ EconomicStatus_mode_value <- EconomicStatus_unique_value[which.max(tabulate(matc
 # Replacing the NA value with the mode value
 victimData_df$EconomicStatus[is.na(victimData_df$EconomicStatus)] <- EconomicStatus_mode_value
 
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(EconomicStatus)))
+
+
+
+# Counting the number of NA values in Education variable
+count(filter(victimData_df, is.na(Education)))
+
+
 # Changing NA values to mode values in Education variable
 Education_unique_value <- unique(victimData_df$Education[!is.na(victimData_df$Education)])
 
@@ -206,6 +320,11 @@ Education_mode_value <- Education_unique_value[which.max(tabulate(match(victimDa
 # Replacing the NA value with the mode value
 victimData_df$Education[is.na(victimData_df$Education)] <- Education_mode_value
 
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(Education)))
+
+
 # Changing NA values to mode values in OccupationCategory variable
 OccupationCategory_unique_value <- unique(victimData_df$OccupationCategory[!is.na(victimData_df$OccupationCategory)])
 
@@ -214,6 +333,11 @@ OccupationCategory_mode_value <- OccupationCategory_unique_value[which.max(tabul
 
 # Replacing the NA value with the mode value
 victimData_df$OccupationCategory[is.na(victimData_df$OccupationCategory)] <- OccupationCategory_mode_value
+
+
+# Counting the number of NA values in LivelihoodDependence variable
+count(filter(victimData_df, is.na(LivelihoodDependence)))
+
 
 # Changing NA values to mode values in LivelihoodDependence variable
 LivelihoodDependence_unique_value <- unique(victimData_df$LivelihoodDependence[!is.na(victimData_df$LivelihoodDependence)])
@@ -225,32 +349,13 @@ LivelihoodDependence_mode_value <- LivelihoodDependence_unique_value[which.max(t
 victimData_df$LivelihoodDependence[is.na(victimData_df$LivelihoodDependence)] <- LivelihoodDependence_mode_value
 
 
-# Changing NA values to mode values in Displacement variable
-Displacement_unique_value <- unique(victimData_df$Displacement[!is.na(victimData_df$Displacement)])
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(LivelihoodDependence)))
 
-# Calculating most frequent value of Displacement variable
-Displacement_mode_value <- Displacement_unique_value[which.max(tabulate(match(victimData_df$Displacement, Displacement_unique_value)))]
 
-# Replacing the NA value with the mode value
-victimData_df$Displacement[is.na(victimData_df$Displacement)] <- Displacement_mode_value
+# Counting the number of NA values in Compensation variable
+count(filter(victimData_df, is.na(Compensation)))
 
-# Changing NA values to mode values in DisplacementResettlement variable
-DisplacementResettlement_unique_value <- unique(victimData_df$DisplacementResettlement[!is.na(victimData_df$DisplacementResettlement)])
-
-# Calculating most frequent value of DisplacementResettlement variable
-DisplacementResettlement_mode_value <- DisplacementResettlement_unique_value[which.max(tabulate(match(victimData_df$DisplacementResettlement, DisplacementResettlement_unique_value)))]
-
-# Replacing the NA value with the mode value
-victimData_df$DisplacementResettlement[is.na(victimData_df$DisplacementResettlement)] <- DisplacementResettlement_mode_value
-
-# Changing NA values to mode values in Gender variable
-Gender_unique_value <- unique(victimData_df$Gender[!is.na(victimData_df$Gender)])
-
-# Calculating most frequent value of Gender variable
-Gender_mode_value <- Gender_unique_value[which.max(tabulate(match(victimData_df$Gender, Gender_unique_value)))]
-
-# Replacing the NA value with the mode value
-victimData_df$Gender[is.na(victimData_df$Gender)] <- Gender_mode_value
 
 # Changing NA values to mode values in Compensation variable
 Compensation_unique_value <- unique(victimData_df$Compensation[!is.na(victimData_df$Compensation)])
@@ -261,7 +366,50 @@ Compensation_mode_value <- Compensation_unique_value[which.max(tabulate(match(vi
 # Replacing the NA value with the mode value
 victimData_df$Compensation[is.na(victimData_df$Compensation)] <- Compensation_mode_value
 
-victimData_df$Event_Date <- dmy(victimData_df$Event_Date)
+
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(Compensation)))
+
+
+
+# Counting the number of NA values in Displacement variable
+count(filter(victimData_df, is.na(Displacement)))
+
+
+# Changing NA values to mode values in Displacement variable
+Displacement_unique_value <- unique(victimData_df$Displacement[!is.na(victimData_df$Displacement)])
+
+# Calculating most frequent value of Displacement variable
+Displacement_mode_value <- Displacement_unique_value[which.max(tabulate(match(victimData_df$Displacement, Displacement_unique_value)))]
+
+# Replacing the NA value with the mode value
+victimData_df$Displacement[is.na(victimData_df$Displacement)] <- Displacement_mode_value
+
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(Displacement)))
+
+
+
+# Counting the number of NA values in DisplacementResettlement variable
+count(filter(victimData_df, is.na(DisplacementResettlement)))
+
+
+# Changing NA values to mode values in DisplacementResettlement variable
+DisplacementResettlement_unique_value <- unique(victimData_df$DisplacementResettlement[!is.na(victimData_df$DisplacementResettlement)])
+
+# Calculating most frequent value of DisplacementResettlement variable
+DisplacementResettlement_mode_value <- DisplacementResettlement_unique_value[which.max(tabulate(match(victimData_df$DisplacementResettlement, DisplacementResettlement_unique_value)))]
+
+# Replacing the NA value with the mode value
+victimData_df$DisplacementResettlement[is.na(victimData_df$DisplacementResettlement)] <- DisplacementResettlement_mode_value
+
+
+# Counting the number of NA variables after Imputation
+count(filter(victimData_df, is.na(DisplacementResettlement)))
+
+
 
 
 # Counting the number of observation with NA value in Year Variable
@@ -271,15 +419,20 @@ count(filter(victimData_df, is.na(Year)))
 # Getting the values from Event_Date where Year variable is NA
 victimData_df$Year <- ifelse(is.na(victimData_df$Year) & !is.na(victimData_df$Event_Date), year(victimData_df$Event_Date), victimData_df$Year)
 
+# Counting the number of NA value after the imputation
 count(filter(victimData_df, is.na(Year)))
 
-# Creating new features perpetrator to check if it is state, maoist or other
+
+# Creating new feature perpetrator to check if it is state, maoist or other
 victimData_df = victimData_df %>% 
   mutate(perpetrator = case_when(
            By_State == 1 & By_Maoist == 0 & Other_Perpetrators == 0 ~ "State" , 
            By_Maoist == 1 & By_State == 0 & Other_Perpetrators == 0 ~ "Maoist" ,
            Other_Perpetrators == 1 & By_State == 0 & By_Maoist == 0 ~ "Other"
          )) 
+# Checking the first 20 records
+head(victimData_df$perpetrator, 20)
+
 
 # Checking the number of NA record
 victimData_df %>% 
@@ -372,19 +525,26 @@ map +
 
 # Histogram Plot for Age Variable
 ggplot(victimData_df, aes(x=Age)) + 
-  geom_histogram(aes(y = ..density..), fill="#1380A1", color="#e9ecef", alpha=0.9) + 
+  geom_histogram(aes(y = ..density..), fill="#1380A1", color="#e9ecef", alpha=0.9, bins = 20) + 
   geom_density() + 
   labs(title = "Age") + 
   bbc_style() +
   theme(plot.title = element_text(color = "#063376"))
 
 
-# Histogram Plot for Number of victims per year
-ggplot(victimData_df) + 
-  geom_histogram(mapping = aes(x=Year), fill="#c0392b", color="#e9ecef", alpha=0.9, bins=10) +     
-  labs(title = "Victims Per Year") + 
-  bbc_style() +
-  theme(plot.title = element_text(color = "#063376"))
+# Grouping the total number of victims by Year
+victimData_df_count_by_year <- victimData_df %>% 
+  group_by(Year) %>%
+  summarise(count=n())
+
+# Bar Plot for Number of victims per year
+ggplot(victimData_df, aes(x = factor(Year))) +
+  geom_bar(stat="count", position="dodge") +
+  labs(subtitle="Number of Victims by Per Year") +
+  ylab('Number of Victims per Year') +
+  xlab('Year') +
+  bbc_style() + 
+  theme(legend.position="bottom")
 
 
 
