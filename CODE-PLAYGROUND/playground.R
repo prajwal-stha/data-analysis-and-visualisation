@@ -805,14 +805,45 @@
     theme(axis.text.x = element_text(angle = 90) 
     )
   
+  victimData_df_count_by_party <- victimData_df %>% 
+    group_by(Partyaffiliation) %>%
+    summarise(count=n())
   
+  victimData_df_count_by_party
   # Bar Chart for plotting the number of victims as of party affiliation
-  PartyAffiliationLabels <- c("Nepali Congress (Democratic)", "Nepali Congress", "CPN-UML", "CPN-ML", "United Maoist", "People’s Front- Nepal", "RPP", "Nepal Sadbhawana Party", "United People’s Front", "Nepal Workers and Peasants Party", "Nepal Communist Party-United", "National People’s Liberation Party", "Limbuwan National Liberation Front", "Not identified")
+  PartyAffiliationLabels <- c("Nepali Congress (Democratic)", 
+                              "Nepali Congress", 
+                              "CPN-UML",
+                              "CPN-ML",
+                              "United Maoist", 
+                              "People's Front-Nepal", 
+                              "RPP",
+                              "Nepal Sadbhawana Party",
+                              "United People's Front", 
+                              "Nepal Workers and Peasants Party",
+                              "Nepal Communist Party-United",
+                              "National People's Liberation Party",
+                              "Limbuwan National Liberation Front",
+                              "Not identified"
+                              )
   
   
   ggplot(victimData_df, aes(x = as.factor(Partyaffiliation), fill = as.factor(Partyaffiliation))) +
-    geom_bar(stat="count", position="dodge", width = 0.3) +
-    scale_fill_manual(values = c("#1380A1", "#FAAB18", "#990000", "#cbcbcb","#333333", "#DC143C", "#FF1493", "#FF6347", "#FFE4E1", "#FFD700", "#FFDAB9", "#BDB76B", "#DDA0DD", "#DAA520"),
+    geom_bar(stat="count", position="dodge", width = 1) +
+    scale_fill_manual(values = c("#FF0000", 
+                                 "#FFFF00", 
+                                 "#808000", 
+                                 "#00FFFF",
+                                 "#008000", 
+                                 "#0000FF", 
+                                 "#000080",
+                                 "#FF00FF", 
+                                 "#800080", 
+                                 "#FFD700",
+                                 "#FFDAB9", 
+                                 "#BDB76B", 
+                                 "#DDA0DD", 
+                                 "#DAA520"),
                       name="Party Affiliation",
                       breaks=c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 99),
                       labels=PartyAffiliationLabels) +
@@ -1010,7 +1041,7 @@
     setNames(c("X", "Y")) %>%
     mutate(cluster = factor(pam_fit$clustering))
   
-  # Plotting the cluster
+  # Plotting the cluster  
   ggplot(aes(x = X, y = Y), data = tsne_data) +
     geom_point(aes(color = cluster))
   
