@@ -845,7 +845,7 @@
                                  "#DDA0DD", 
                                  "#DAA520"),
                       name="Party Affiliation",
-                      breaks=c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 99),
+                      breaks=c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
                       labels=PartyAffiliationLabels) +
     labs(subtitle="Victims by Political Party Affiliation") +
     scale_x_discrete(labels = PartyAffiliationLabels) +
