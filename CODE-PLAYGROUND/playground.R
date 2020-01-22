@@ -1,33 +1,97 @@
+#------------ Setting working directory ------------#
 setwd('/Users/prajwalshrestha/Desktop/Sandbox/data-analysis-and-visualisation/CODE-PLAYGROUND')
 
 
 getwd()
 
-# Maintain the reproducibility of the results
+#------------ Maintain the reproducibility of the results ------------#
 set.seed(786)
 
-
-# Loading required libraries
+#------------ Loading required libraries ------------#
 if(!require(pacman))install.packages("pacman")
 
+#------------ Install tidyverse package ------------#
+install.packages('tidyverse')
 
+
+#------------ Install skimr package ------------#
+install.packages('skimr')
+
+
+#------------ Install Hmisc package ------------#
+install.packages('Hmisc')
+
+
+#------------ Install DataExplorer package ------------#
+install.packages('DataExplorer')
+
+
+#------------ Install funModeling package ------------#
+install.packages('funModeling')
+
+
+#------------ Install lubridate package ------------#
+install.packages('lubridate')
+
+
+#------------ Install scales package ------------#
+install.packages('scales')
+
+
+#------------ Install grid package ------------#
+install.packages('grid')
+
+
+#------------ Install RColorBrewer package ------------#
+install.packages('RColorBrewer')
+
+#------------ Install bbplot package ------------#
 devtools::install_github('bbc/bbplot')
 
 
+#------------ Install mice package ------------#
+install.packages('mice')
+
+
+#------------ Install VIM package ------------#
+install.packages('VIM')
+
+
+#------------ Install highcharter package ------------#
+install.packages('highcharter')
+
+
+#------------ Install rgdal package ------------#
+install.packages('rgdal')
+
+
+#------------ Install aod package ------------#
+install.packages('aod')
+
+
+#------------ Install cluster package ------------#
+install.packages('cluster')
+
+
+#------------ Install readr package ------------#
+install.packages('readr')
+
+
+#------------ Install Rtsne package ------------#
+install.packages('Rtsne')
+
+
+#------------ Load all the libraries ------------#
 pacman::p_load('tidyverse', 
                'skimr', 
                'Hmisc', 
                'DataExplorer', 
-               'ggcorrplot', 
                'funModeling', 
                'lubridate', 
                'scales', 
                'grid', 
                'RColorBrewer', 
                'bbplot', 
-               'caret', 
-               'caretEnsemble', 
-               'ggvis', 
                'mice', 
                'VIM', 
                'highcharter', 
@@ -39,9 +103,11 @@ pacman::p_load('tidyverse',
                )
 
 
-# Remove objects
+#------------ Remove objects ------------#
 remove(list = ls())
 
+
+#------------ Read flat file ------------#
 victimData_df <- read.csv('Nepal_Individual_Level_Replication_Data.csv', stringsAsFactors = FALSE)
 
 
@@ -54,10 +120,11 @@ glimpse(victimData_df)
 
 summary(victimData_df)
 
-# Checking the number of empty values data
+#------------ Checking the number of empty values data ------------#
 md.pattern(victimData_df)
 
-# Histogram of Missing data
+
+#------------ Histogram of Missing data ------------#
 aggr_plot <- aggr(victimData_df, col=c('navyblue', 'red'), 
                   numbers=TRUE, sortVars=TRUE, 
                   labels=names(victimData_df), 
@@ -66,7 +133,7 @@ aggr_plot <- aggr(victimData_df, col=c('navyblue', 'red'),
                   ylab=c("Graph for missing data", "Pattern"))
 
 
-# Getting the length of the unique entries
+#------------ Getting the length of the unique entries ------------#
 victimData_df_unique_entries <- victimData_df %>% 
   map_df(~ n_distinct(.)) %>% 
   gather(FEATURE, DISTINCT_ROWS) %>% 
@@ -78,7 +145,7 @@ df_status(victimData_df)
 
 
 
-# Removing age_2 and Informer feature from the dataset
+#------------ Removing age_2 and Informer feature from the dataset ------------#
 victimData_df = subset(victimData_df, select = -c(age_2, Informer))
 
 
@@ -87,17 +154,17 @@ victimData_df = subset(victimData_df, select = -c(age_2, Informer))
 df_status(victimData_df)
 
 
-# Checking the number of NA record
+#------------ Checking the number of NA record ------------#
 victimData_df %>% 
   map_df(~ sum(is.na(.)))
 
 
 
-# Changing empty string to NA
+#------------ Changing empty string to NA ------------#
 victimData_df %>% 
   na_if("")
 
-# Summary matrix for numerical features
+#------------ Summary matrix for numerical features ------------#
 victimData_df %>% 
   select(Age) %>% 
   skim()
@@ -525,10 +592,10 @@ map +
 
 # Histogram Plot for Age Variable
 ggplot(victimData_df, aes(x=Age)) + 
-  geom_histogram(aes(y = ..density..), fill="#1380A1", color="#e9ecef", alpha=0.9, bins = 20) + 
+  geom_histogram(aes(y = ..density..), fill="#1380A1", color="#e9ecef", alpha=0.9, bins = 10) + 
   geom_density() + 
   labs(title = "Age") + 
-  bbc_style() +
+  bbc_style() + 
   theme(plot.title = element_text(color = "#063376"))
 
 
@@ -850,15 +917,19 @@ victimData_alt_df$IncidentDistrict <- as.factor(victimData_alt_df$IncidentDistri
 #victimData_alt_df$Event_Date <- as.factor(victimData_alt_df$Event_Date)
 
 
-gower_dist <- daisy(victimData_alt_df, metric = "gower")
-gower_mat <- as.matrix(gower_dist)
+gower.dist <- daisy(victimData_alt_df, metric = "gower")
 
-victimData_alt_df[which(gower_mat == min(gower_mat[gower_mat != min(gower_mat)]), arr.ind = TRUE)[1, ], ]
+class(gower.dist)
+
+
+gower.mat <- as.matrix(gower.dist)
+
+victimData_alt_df[which(gower.mat == min(gower.mat[gower.mat != min(gower.mat)]), arr.ind = TRUE)[1, ], ]
 
 
 sil_width <- c(NA)
 for(i in 2:4){  
-  pam_fit <- pam(gower_dist, diss = TRUE, k = i)  
+  pam_fit <- pam(gower.dist, diss = TRUE, k = i)  
   sil_width[i] <- pam_fit$silinfo$avg.width  
 }
 sil_width
@@ -870,7 +941,7 @@ lines(1:4, sil_width)
 
 k <- 2
 
-pam_fit <- pam(gower_dist, diss = TRUE, k)
+pam_fit <- pam(gower.dist, diss = TRUE, k)
 
 pam_results <- victimData_alt_df %>%
   mutate(cluster = pam_fit$clustering) %>%
@@ -888,6 +959,12 @@ tsne_data <- tsne_obj$Y %>%
 # Plotting the cluster
 ggplot(aes(x = X, y = Y), data = tsne_data) +
   geom_point(aes(color = cluster))
+
+
+#------------ DIVISIVE CLUSTERING ------------#
+divisive.clust <- diana(as.matrix(gower.dist), diss = TRUE, keep.diss = TRUE)
+
+plot(divisive.clust, main = "Divisive")
 
 
 
