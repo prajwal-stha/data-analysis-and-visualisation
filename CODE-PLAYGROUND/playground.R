@@ -1,5 +1,5 @@
 #------------ Setting working directory ------------#
-setwd('/Users/prajwalshrestha/Desktop/Sandbox/data-analysis-and-visualisation/CODE-PLAYGROUND')
+setwd('/home/prajwal/Desktop/Sandbox/data-analysis-viz/CODE-PLAYGROUND')
 
 
 getwd()
@@ -1048,14 +1048,14 @@ victimData_alt_df$DisplacementResettlement <- as.factor(victimData_alt_df$Displa
 
 
 #------------ Selecting random number of observation ------------#
-victimData_alt_df_2 <- victimData_alt_df[sample(nrow(victimData_alt_df), 1000), ] 
+victimData_alt_df_2 <- victimData_alt_df[sample(nrow(victimData_alt_df), 5000), ] 
 
 
 view(victimData_alt_df_2)
 
 
-gower.dist <- daisy(victimData_alt_df_2, metric = "gower")
-
+gower.dist <- daisy(victimData_alt_df, metric = "gower")
+  
 class(gower.dist)
 
 
@@ -1064,29 +1064,20 @@ gower.mat <- as.matrix(gower.dist)
 
 victimData_alt_df_2[which(gower.mat == min(gower.mat[gower.mat != min(gower.mat)]), arr.ind = TRUE)[1, ], ]
 
-
+#------------ Calculating Silhouette Width------------#
 sil_width <- c(NA)
 
-#------------ Calculating Silhouette Width------------#
-lapply(2:10, function(i) {
+sil_width <- sapply(2:10, function(i) {
   pam_fit <- pam(gower.dist, diss = TRUE, k = i)
-  sil_width[i] <- pam_fit$silinfo$avg.width  
-  return(sil_width)
+  pam_fit$silinfo$avg.width
 })
-
-
-
-for(i in 2:10){  
-  pam_fit <- pam(gower.dist, diss = TRUE, k = i)  
-  sil_width[i] <- pam_fit$silinfo$avg.width  
-}
 sil_width
 
 #------------ Plotting Silhouette Width------------#
-plot(1:10, sil_width,
+plot(2:10, sil_width,
      xlab = "Number of clusters",
      ylab = "Silhouette Width")
-lines(1:10, sil_width)
+lines(2:10, sil_width)
 
 pam_fit <- pam(gower.dist, diss = TRUE, k = 2)
 
