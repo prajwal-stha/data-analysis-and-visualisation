@@ -228,7 +228,7 @@ victimData_df <- victimData_df %>%
 #------------ Counting the number of NA values after imputation ------------#
 count(filter(victimData_df, is.na(Age)))
 
-victimData_df$Age
+
 ggplot(victimData_df, aes(y=Age)) +
   geom_boxplot(outlier.colour = "red", outlier.shape = 1) +
   theme(
@@ -995,10 +995,36 @@ devtools::session_info()
 # Since the data set contains more categorical variables we can't perform any kind of prediction
 # We will apply clustering on the basis of the numbers of victims count and age
 
-# Compute Gower distance
+#------------  Computing Gower distance ------------#
 view(victimData_df)
-victimData_alt_df = subset(victimData_df, select = c(IncidentDistrict, PermanentDistrict, Age, Year, Event_Date, Region2, Region1, IncidentOutcome, Killed_Type, perpetrator, Gender, MaritalStatus, LanguageGroup, CasteGroup, Partyaffiliation, EconomicStatus, Education, OccupationCategory, LivelihoodDependence, Compensation, Displacement, DisplacementResettlement))
-# Converting the date type and character type feature to fa ctor for maintaining the com
+
+
+#------------ Selecting the variables that defines well about the character of the victims ------------#
+victimData_alt_df = subset(victimData_df, select = c(IncidentDistrict, 
+                                                     PermanentDistrict, 
+                                                     Age, 
+                                                     Year, 
+                                                     Event_Date, 
+                                                     Region2, 
+                                                     Region1, 
+                                                     IncidentOutcome, 
+                                                     Killed_Type, 
+                                                     perpetrator, 
+                                                     Gender, 
+                                                     MaritalStatus, 
+                                                     LanguageGroup, 
+                                                     CasteGroup, 
+                                                     Partyaffiliation, 
+                                                     EconomicStatus, 
+                                                     Education, 
+                                                     OccupationCategory, 
+                                                     LivelihoodDependence, 
+                                                     Compensation, 
+                                                     Displacement, 
+                                                     DisplacementResettlement
+                                                     ))
+
+#------------ Converting the date type and character type of selected features to factor for maintaining the compatibility ------------#
 victimData_alt_df$perpetrator <- as.factor(victimData_alt_df$perpetrator)
 victimData_alt_df$IncidentDistrict <- as.factor(victimData_alt_df$IncidentDistrict)
 victimData_alt_df$PermanentDistrict <- as.factor(victimData_alt_df$PermanentDistrict)
@@ -1019,14 +1045,15 @@ victimData_alt_df$LivelihoodDependence <- as.factor(victimData_alt_df$Livelihood
 victimData_alt_df$Compensation <- as.factor(victimData_alt_df$Compensation)
 victimData_alt_df$Displacement <- as.factor(victimData_alt_df$Displacement)
 victimData_alt_df$DisplacementResettlement <- as.factor(victimData_alt_df$DisplacementResettlement)
-#victimData_alt_df$Event_Date <- as.factor(victimData_alt_df$Event_Date)
 
-levels(victimData_alt_df$Event_Date)
 
-view(victimData_alt_df)
+#------------ Selecting random number of observation ------------#
+victimData_alt_df_2 <- victimData_alt_df[sample(nrow(victimData_alt_df), 1000), ] 
 
-victimData_alt_df_2 <- victimData_alt_df[sample(nrow(victimData_alt_df), 5000), ] 
+
 view(victimData_alt_df_2)
+
+
 gower.dist <- daisy(victimData_alt_df_2, metric = "gower")
 
 class(gower.dist)
@@ -1039,11 +1066,23 @@ victimData_alt_df_2[which(gower.mat == min(gower.mat[gower.mat != min(gower.mat)
 
 
 sil_width <- c(NA)
+
+#------------ Calculating Silhouette Width------------#
+lapply(2:10, function(i) {
+  pam_fit <- pam(gower.dist, diss = TRUE, k = i)
+  sil_width[i] <- pam_fit$silinfo$avg.width  
+  return(sil_width)
+})
+
+
+
 for(i in 2:10){  
   pam_fit <- pam(gower.dist, diss = TRUE, k = i)  
   sil_width[i] <- pam_fit$silinfo$avg.width  
 }
 sil_width
+
+#------------ Plotting Silhouette Width------------#
 plot(1:10, sil_width,
      xlab = "Number of clusters",
      ylab = "Silhouette Width")
