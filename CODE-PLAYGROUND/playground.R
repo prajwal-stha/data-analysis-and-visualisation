@@ -1,5 +1,5 @@
 #------------ Setting working directory ------------#
-setwd('/home/prajwal/Desktop/Sandbox/data-analysis-viz/CODE-PLAYGROUND')
+setwd('/Users/prajwalshrestha/Desktop/Sandbox/data-analysis-and-visualisation/CODE-PLAYGROUND')
 
 
 getwd()
@@ -993,9 +993,8 @@ devtools::session_info()
 
 # Clustering
 # Since the data set contains more categorical variables we can't perform any kind of prediction
-# We will apply clustering on the basis of the numbers of victims count and age
+# We will apply clustering 
 
-#------------  Computing Gower distance ------------#
 view(victimData_df)
 
 
@@ -1023,6 +1022,7 @@ victimData_alt_df = subset(victimData_df, select = c(IncidentDistrict,
                                                      Displacement, 
                                                      DisplacementResettlement
                                                      ))
+head(victimData_alt_df, 2)
 
 #------------ Converting the date type and character type of selected features to factor for maintaining the compatibility ------------#
 victimData_alt_df$perpetrator <- as.factor(victimData_alt_df$perpetrator)
@@ -1051,34 +1051,50 @@ victimData_alt_df$DisplacementResettlement <- as.factor(victimData_alt_df$Displa
 victimData_alt_df_2 <- victimData_alt_df[sample(nrow(victimData_alt_df), 5000), ] 
 
 
-view(victimData_alt_df_2)
+view(victimData_alt_df)
 
-
-gower.dist <- daisy(victimData_alt_df, metric = "gower")
+#------------ Calculating the Gower distance ------------#
+#------------ Due to positive skew in the Age variable, a log transformation is conducted internally via the type argument ------------#
+gower.dist <- daisy(victimData_alt_df_2, metric = "gower", type = list(logratio = 3))
   
+
+#------------ Checking the class ------------#
 class(gower.dist)
 
 
+#------------ Summary of the class ------------#
+summary(gower.dist)
+
+#------------ Store as matrix ------------#
 gower.mat <- as.matrix(gower.dist)
 
-
+#------------ Output most similar pair ------------#
 victimData_alt_df_2[which(gower.mat == min(gower.mat[gower.mat != min(gower.mat)]), arr.ind = TRUE)[1, ], ]
 
-#------------ Calculating Silhouette Width------------#
+
+#------------ Output most dissimilar pair ------------#
+victimData_alt_df_2[which(gower.mat == max(gower.mat[gower.mat != max(gower.mat)]), arr.ind = TRUE)[1, ], ]
+
+
+#------------ Calculating silhouette width for many k using PAM ------------#
 sil_width <- c(NA)
 
 sil_width <- sapply(2:10, function(i) {
   pam_fit <- pam(gower.dist, diss = TRUE, k = i)
   pam_fit$silinfo$avg.width
 })
+
 sil_width
 
-#------------ Plotting Silhouette Width------------#
+#------------ Plotting Silhouette Width (higher is better) ------------#
 plot(2:10, sil_width,
      xlab = "Number of clusters",
      ylab = "Silhouette Width")
+
+
 lines(2:10, sil_width)
 
+#------------ Applying cluster with the best Silhouette Width ------------#
 pam_fit <- pam(gower.dist, diss = TRUE, k = 2)
 
 pam_results <- victimData_alt_df_2 %>%
@@ -1086,11 +1102,15 @@ pam_results <- victimData_alt_df_2 %>%
   group_by(cluster) %>%
   do(the_summary = summary(.))
 
+#------------ Cluster Interpretation ------------#
 pam_results$the_summary
 
-
+# Calculating Mediods
 victimData_alt_df_2[pam_fit$medoids, ]
+dev.off()
 
+
+# visualizing many variables in a lower dimensional space is with t-distributed stochastic neighborhood embedding
 tsne_obj <- Rtsne(gower.dist, is_distance = TRUE)
 
 tsne_data <- tsne_obj$Y %>%
