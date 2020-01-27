@@ -1,9 +1,6 @@
 #------------ Setting working directory ------------#
 setwd('/Users/prajwalshrestha/Desktop/Sandbox/data-analysis-and-visualisation/CODE-PLAYGROUND')
 
-
-getwd()
-
 #------------ Ensure the reproducibility for sampling ------------#
 set.seed(786)
 
@@ -13,101 +10,68 @@ if(!require(pacman))install.packages("pacman")
 #------------ Install tidyverse package ------------#
 install.packages('tidyverse')
 
-
 #------------ Install skimr package ------------#
 install.packages('skimr')
-
 
 #------------ Install Hmisc package ------------#
 install.packages('Hmisc')
 
-
 #------------ Install DataExplorer package ------------#
 install.packages('DataExplorer')
-
 
 #------------ Install funModeling package ------------#
 install.packages('funModeling')
 
-
 #------------ Install lubridate package ------------#
 install.packages('lubridate')
-
 
 #------------ Install scales package ------------#
 install.packages('scales')
 
-
 #------------ Install grid package ------------#
 install.packages('grid')
-
 
 #------------ Install RColorBrewer package ------------#
 install.packages('RColorBrewer')
 
-
 #------------ Install bbplot package ------------#
 devtools::install_github('bbc/bbplot')
-
 
 #------------ Install mice package ------------#
 install.packages('mice')
 
-
 #------------ Install VIM package ------------#
 install.packages('VIM')
-
 
 #------------ Install highcharter package ------------#
 install.packages('highcharter')
 
-
 #------------ Install rgdal package ------------#
 install.packages('rgdal')
 
-  
 #------------ Install aod package ------------#
 install.packages('aod')
-
 
 #------------ Install cluster package ------------#
 install.packages('cluster')
 
-
-
 #------------ Install Rtsne package ------------#
 install.packages('Rtsne')
-
 
 #------------ Install viridis package ------------#
 install.packages('viridis')
 
+#------------ Install factoextra package ------------#
+install.packages('factoextra')
+
+#------------ Install gridExtra package ------------#
+install.packages('gridExtra')
 
 #------------ Load all the libraries ------------#
-pacman::p_load('tidyverse', 
-               'skimr', 
-               'Hmisc', 
-               'DataExplorer', 
-               'funModeling', 
-               'lubridate', 
-               'scales', 
-               'grid', 
-               'RColorBrewer', 
-               'bbplot', 
-               'mice', 
-               'VIM', 
-               'highcharter', 
-               'rgdal', 
-               'aod', 
-               'cluster', 
-               'Rtsne',
-               'viridis'
-               )
-
+pacman::p_load('tidyverse', 'skimr', 'Hmisc', 'DataExplorer', 'funModeling', 'lubridate', 'scales', 'grid', 'RColorBrewer', 'bbplot', 'mice', 'VIM', 'highcharter', 'rgdal', 'aod', 'cluster', 'Rtsne', 'viridis', 'factoextra', 'gridExtra')
 
 #------------ Remove objects ------------#
 remove(list = ls())
-
 
 #------------ Read flat file ------------#
 victimData_df <- read.csv('Nepal_Individual_Level_Replication_Data.csv', stringsAsFactors = FALSE)
@@ -1123,4 +1087,58 @@ ggplot(aes(x = X, y = Y), data = tsne_data) +
   geom_point(aes(color = cluster))
 
 
+#------------ k-Means Clustering for Numerical Features ------------#
 
+#------------ Selecting the numerical variables from the victims ------------#
+victimData_k_means_df = subset(victimData_df, select = c(Age, Year))
+
+#------------ Adding the serialno variables as the row name ------------#
+row.names(victimData_k_means_df) <- victimData_df$serialno
+
+
+
+head(victimData_k_means_df, 2)
+
+#------------ Scaling the features ------------#
+victimData_k_means_scaled_df <- scale(victimData_k_means_df)
+
+head(victimData_k_means_scaled_df, 2)
+
+
+#------------ Examining the difference in the result with differen k ------------#
+k2 <- kmeans(victimData_k_means_scaled_df, centers = 2, nstart = 25)
+k3 <- kmeans(victimData_k_means_scaled_df, centers = 3, nstart = 25)
+k4 <- kmeans(victimData_k_means_scaled_df, centers = 4, nstart = 25)
+k5 <- kmeans(victimData_k_means_scaled_df, centers = 5, nstart = 25)
+
+p1 <- fviz_cluster(k2, geom = "point", data = victimData_k_means_scaled_df) + ggtitle("k = 2")
+p2 <- fviz_cluster(k3, geom = "point",  data = victimData_k_means_scaled_df) + ggtitle("k = 3")
+p3 <- fviz_cluster(k4, geom = "point",  data = victimData_k_means_scaled_df) + ggtitle("k = 4")
+p4 <- fviz_cluster(k5, geom = "point",  data = victimData_k_means_scaled_df) + ggtitle("k = 5")
+
+#------------ Plotting the difference ------------#
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+
+
+
+
+#------------ Determining the optimal number of cluster from Elbow Method ------------#
+fviz_nbclust(victimData_k_means_scaled_df, kmeans, method = "wss")
+
+
+#------------ Extracting the results using the best number of clusters ------------#
+final <- kmeans(victimData_k_means_scaled_df, 4, nstart = 25)
+
+print(final)
+
+
+#------------ Plotting the final result ------------#
+the_plot <- fviz_cluster(final, data = victimData_k_means_scaled_df)
+
+the_plot
+
+#------------ Extracting the clusters and adding to our initial data ------------#
+victimData_k_means_df %>%
+  mutate(Cluster = final$cluster) %>%
+  group_by(Cluster) %>%
+  summarise_all("mean")
