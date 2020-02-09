@@ -1,5 +1,8 @@
+#------------ Getting working directory ------------#
+currentWorkDir = getwd()
+
 #------------ Setting working directory ------------#
-setwd('/Users/prajwalshrestha/Desktop/Sandbox/data-analysis-and-visualisation/CODE-PLAYGROUND')
+setwd(currentWorkDir)
 
 #------------ Ensure the reproducibility for sampling ------------#
 set.seed(786)
